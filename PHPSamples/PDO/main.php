@@ -1,2 +1,5 @@
 <?php
-include("db.html");
+    include("requests.php");
+    SimpleRequest();
+
+

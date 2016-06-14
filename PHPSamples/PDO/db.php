@@ -3,14 +3,19 @@
 
 //création d'une classe My_PDO pour créer un PDO à partir d'un fichier .ini qui va contenir tout les paramètres pour la connection (source: http://php.net/manual/fr/class.pdo.php)
 class My_PDO extends PDO{
-    public function __construct($file = 'my_setting.ini'){
+    public function __construct($file){  //$file is a string who indicate .ini file
         if (!$settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-        $dns = $settings['database']['driver'] .
+        //le deuxième paramètre de parse_ini_file passé à TRUE crée un tableau multidimentionnel avec les noms sections
+            $dns =
+            $settings['database']['driver'] .
             ':host=' . $settings['database']['host'] .
             ((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .
             ';dbname=' . $settings['database']['schema'];
 
-        parent::__construct($dns, $settings['database']['username'], $settings['database']['password']);
+            //to have something like "pgsql:host=localhost;dbname=databaseName"
+
+
+        parent::__construct($dns, $settings['admin_user']['username'], $settings['admin_user']['password']);
 
     }
 }
@@ -19,14 +24,13 @@ class My_PDO extends PDO{
 class DBConnect{
     private static $_instance = null;
     private $_connect;
-    private $_server = "pgsql:host=localhost;dbname=shalendar";
 
     //comme le constructeur est private, il ne peut être appelé que par une méthode statique de la classe (ici par la fonction get_instance() )
-    private function __construct($login, $pwd){
+    private function __construct($file){
         try{
-            $this->_connect = new PDO($this->_server, $login, $pwd);
+            $this->_connect = new My_PDO($file);
             $this->_connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        }catch(PDOEXEPTION $e){
+        }catch(Exception $e){
             echo $e -> getMessage();
         }
     }
@@ -35,28 +39,10 @@ class DBConnect{
         return $this->_connect;
     }
 
-    public static function get_instance($login, $pwd){
+    public static function get_instance($file = 'connection.ini'){
         if(is_null(self::$_instance)){
-            self::$_instance = new DBConnect($login, $pwd);
+            self::$_instance = new DBConnect($file);
         }
         return self::$_instance;
     }
 }
-
-
-
-//Utilisation requête simple
-try{
-    $pdo = DBConnect::get_instance("postgres", "postgres");
-    $connexion = $pdo->get_connection();
-    $requ = "SELECT * FROM calendars";
-    $pdo_statement = $connexion->query($requ);
-    $cal =  $pdo_statement->fetch(PDO::FETCH_OBJ);
-    print_r($cal);
-
-}catch(PDOException $e){
-    echo $e;
-}
-
-
-?>
